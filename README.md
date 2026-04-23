@@ -30,7 +30,7 @@ Analysis of the 80.03% failure cases revealed a "Semantic Gap." Classical Comput
 
 ---
 
-## 4. Phase 2: The Hybrid Revolution (Reaching 90%+)
+## 4. Phase 2: The Hybrid Revolution (Hoping it Reaching 90%+ but NOT)
 
 ### 4.1 Why Combine YOLOv8?
 To break the 90% barrier, we pivoted to a **Heterogeneous Hybrid Architecture**. This system treats detection as a two-stage process:
@@ -50,7 +50,7 @@ To break the 90% barrier, we pivoted to a **Heterogeneous Hybrid Architecture**.
 | :--- | :--- | :--- |
 | **Baseline OpenCV** | ~72% | Standard single-pass detection. |
 | **Multi-Sweep Classical** | **80.03%** | Parameter sweeping + geometric filtering. |
-| **Hybrid CNN+Classical** | **90.0%** | Semantic ROI filtering + Sub-pixel localization. |
+| **Hybrid CNN+Classical** | **0.05%** | Semantic ROI filtering + Sub-pixel localization. |
 
 ---
 
