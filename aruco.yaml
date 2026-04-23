@@ -1,0 +1,6 @@
+path: C:/BKHCM/Year_3/HK252/CV/aruco_data
+train: images/train
+val: images/train
+
+names:
+  0: aruco_marker
