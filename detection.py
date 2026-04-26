@@ -1,20 +1,62 @@
 import cv2
 import numpy as np
 
+def adjust_gamma(image, gamma=1.2):
+	# build a lookup table mapping the pixel values [0, 255] to
+	# their adjusted gamma values
+	invGamma = 1.0 / gamma
+	table = np.array([((i / 255.0) ** invGamma) * 255
+		for i in np.arange(0, 256)]).astype("uint8")
+	# apply gamma correction using the lookup table
+	return cv2.LUT(image, table)		
+
+def auto_gamma_correction(image):
+    """
+    Automatically determine gamma value based on image brightness
+    
+    Parameters:
+    image: Input image
+    
+    Returns:
+    Automatically gamma-corrected image
+    """
+    # Convert to grayscale and calculate mean brightness
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    mean_brightness = np.mean(gray)
+    
+    # Calculate gamma based on mean brightness
+    # Lower brightness gets lower gamma (more correction)
+    target_brightness = 50  # Mid-range brightness
+    gamma = np.log(target_brightness / 255) / np.log(mean_brightness / 255)
+    
+    # Ensure gamma is within reasonable bounds
+    gamma = np.clip(gamma, 0.7, 2.6)
+    
+    return adjust_gamma(image, gamma)
+
 def preprocess_image(image):
     """
     Enhances the image to handle shadows and noise while preserving edges.
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # 1. CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced_gray = clahe.apply(gray)
+    # # 1. CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    # enhanced_gray = clahe.apply(gray)
 
-    # 2. Bilateral Filter instead of Sharpening
-    # This specifically targets compression artifacts and background noise
-    # without blurring the crisp edges of the ArUco boundaries.
-    filtered = cv2.bilateralFilter(enhanced_gray, d=5, sigmaColor=50, sigmaSpace=50)
+    # # 2. Bilateral Filter instead of Sharpening
+    # # This specifically targets compression artifacts and background noise
+    # # without blurring the crisp edges of the ArUco boundaries.
+    # filtered = cv2.bilateralFilter(enhanced_gray, d=5, sigmaColor=50, sigmaSpace=50)
+
+    gray  = cv2.cvtColor(auto_gamma_correction(image), cv2.COLOR_RGB2GRAY)
+    gray = cv2.equalizeHist(gray)
+    blur = cv2.GaussianBlur(gray, (7, 7), 0)
+    norm = cv2.divide(gray, blur, scale=255)
+
+    #thresh = cv.adaptiveThreshold(norm, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 5, 6)
+    _,thresh = cv2.threshold(norm, 0 , 255, cv2.THRESH_OTSU)
+    filtered = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, (2,2))
 
     return filtered
 
@@ -87,7 +129,7 @@ def process_aruco_image(image_path):
     aruco_params.cornerRefinementMinAccuracy = 0.01
 
     detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-    raw_corners, raw_ids, _ = detector.detectMarkers(preprocessed_img)
+    raw_corners, raw_ids, _ = detector.detectMarkers(img)
 
     # Apply our custom Spam Filter
     corners, ids = filter_marker_candidates(raw_corners, raw_ids, img.shape)
@@ -108,6 +150,6 @@ def process_aruco_image(image_path):
 
 if __name__ == "__main__":
     # Test this on a single image locally
-    test_image = "aruco_data/train/000000000089.jpg" 
+    test_image = "./aruco_data/images/train/000000000089.jpg" 
     results = process_aruco_image(test_image)
     print("Detected Markers:", results)

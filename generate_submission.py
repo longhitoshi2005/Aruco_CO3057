@@ -4,6 +4,39 @@ import pandas as pd
 from pathlib import Path
 import math
 
+def adjust_gamma(image, gamma=1.2):
+	# build a lookup table mapping the pixel values [0, 255] to
+	# their adjusted gamma values
+	invGamma = 1.0 / gamma
+	table = np.array([((i / 255.0) ** invGamma) * 255
+		for i in np.arange(0, 256)]).astype("uint8")
+	# apply gamma correction using the lookup table
+	return cv2.LUT(image, table)		
+
+def auto_gamma_correction(image):
+    """
+    Automatically determine gamma value based on image brightness
+    
+    Parameters:
+    image: Input image
+    
+    Returns:
+    Automatically gamma-corrected image
+    """
+    # Convert to grayscale and calculate mean brightness
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    mean_brightness = np.mean(gray)
+    
+    # Calculate gamma based on mean brightness
+    # Lower brightness gets lower gamma (more correction)
+    target_brightness = 50  # Mid-range brightness
+    gamma = np.log(target_brightness / 255) / np.log(mean_brightness / 255)
+    
+    # Ensure gamma is within reasonable bounds
+    gamma = np.clip(gamma, 0.7, 2.6)
+    
+    return adjust_gamma(image, gamma)
+
 def preprocess_flat(image):
     """
     Applies very light CLAHE to balance the image without 
@@ -11,7 +44,17 @@ def preprocess_flat(image):
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
-    return clahe.apply(gray)
+
+    gray  = cv2.cvtColor(auto_gamma_correction(image), cv2.COLOR_RGB2GRAY)
+    gray = cv2.equalizeHist(gray)
+    blur = cv2.GaussianBlur(gray, (7, 7), 0)
+    norm = cv2.divide(gray, blur, scale=255)
+
+    #thresh = cv.adaptiveThreshold(norm, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 5, 6)
+    _,thresh = cv2.threshold(norm, 0 , 255, cv2.THRESH_OTSU)
+    filtered = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, (2,2))
+
+    return filtered
 
 def filter_marker_candidates(corners, ids, image_shape):
     """
