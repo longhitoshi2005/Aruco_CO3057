@@ -42,8 +42,8 @@ def preprocess_flat(image):
     Applies very light CLAHE to balance the image without 
     blowing out the background textures.
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
+    #gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    #clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
 
     gray  = cv2.cvtColor(auto_gamma_correction(image), cv2.COLOR_RGB2GRAY)
     gray = cv2.equalizeHist(gray)
